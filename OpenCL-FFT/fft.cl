@@ -93,8 +93,6 @@ kernel void fft(global double2* data, local double2* local_cache, local double2*
         }
     }
     
-    barrier(CLK_LOCAL_MEM_FENCE);
-    
     for(int i = btid * 2; i < btid * 2 + g_offset * 2; i++)
     {
     #ifdef INVERSE
