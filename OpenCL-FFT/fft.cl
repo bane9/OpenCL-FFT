@@ -1,4 +1,5 @@
-inline float2 cplx_mul(float2 lhs, float2 rhs) {
+inline float2 cplx_mul(float2 lhs, float2 rhs) 
+{
     return (float2) {
         lhs.even * rhs.even - lhs.odd * rhs.odd,
         lhs.odd * rhs.even + lhs.even * rhs.odd
@@ -22,18 +23,20 @@ unsigned int rev_bits(unsigned int num)
     return reverse_num; 
 } 
 
-inline unsigned index_map(unsigned threadId, unsigned currentIteration, unsigned N){
+inline unsigned index_map(unsigned threadId, unsigned currentIteration, unsigned N)
+{
     return ((threadId & (N - (1u << currentIteration))) << 1) | (threadId & ((1u << currentIteration) - 1));
 }
 
 inline unsigned twiddle_map(unsigned threadId, unsigned currentIteration, unsigned logTwo, unsigned N)
 {
-    return (threadId & (N / (1u << (logTwo - currentIteration)) - 1)) * (1u << (logTwo - currentIteration)) / 2;
+    return (threadId & (N / (1u << (logTwo - currentIteration)) - 1)) * (1u << (logTwo - currentIteration)) >> 1;
 }
 
-float2 twiddle(float kn, float N, bool is_inverse) {
+float2 twiddle(float kn, float N, bool is_inverse) 
+{
     float r;
-    float i = sincos((!is_inverse * 2 - 1) * 2.0 * M_PI * kn / N, &r);
+    float i = sincos((!is_inverse * 2 - 1) * 2.0f * M_PI * kn / N, &r);
 
     return (float2) {r, i};
 }
@@ -71,11 +74,9 @@ kernel void fft(global float2* data, local float2* local_cache, const int N, con
             const unsigned q = twiddle_map(j, i, logTwo, N);
 
             const float2 e = cplx_mul(twiddle(q, N, is_inverse), local_cache[odd]);
-
-            barrier(CLK_LOCAL_MEM_FENCE);
     
             local_cache[odd] = evenVal - e;
-            local_cache[even] += e;
+            local_cache[even] = evenVal + e;
 
             barrier(CLK_LOCAL_MEM_FENCE);
         }
@@ -83,7 +84,7 @@ kernel void fft(global float2* data, local float2* local_cache, const int N, con
     
     for(int i = btid * 2; i < btid * 2 + g_offset * 2; i++)
     {
-        data[i] = local_cache[i] / (N * is_inverse + 1 * !is_inverse);
+        data[i] = local_cache[i] / (N * is_inverse + !is_inverse);
     }
     
 }

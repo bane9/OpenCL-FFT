@@ -17,7 +17,7 @@ void errCheck(cl_int err, int line);
 
 int main() {
     using cplx_t = std::complex<float>;
-    const int sample_size = 4096;
+    const int sample_size = 2048;
 
     const int is_inverse = false;
 
