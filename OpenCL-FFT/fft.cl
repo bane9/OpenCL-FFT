@@ -90,10 +90,7 @@ kernel void fft(global float2* data, local float2* local_cache, const int N, con
     
     for(int i = btid * radix; i < btid * radix + g_offset * radix; i++)
     {
-        if(is_inverse)
-            data[i] = local_cache[i] / N;
-        else
-            data[i] = local_cache[i];
+        data[i] = local_cache[i] / (N * is_inverse + 1 * !is_inverse);
     }
     
 }
