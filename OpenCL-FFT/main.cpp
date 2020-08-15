@@ -19,12 +19,12 @@ int main() {
     using cplx_t = std::complex<float>;
     const int sample_size = 4096;
 
-    const int radix = 32;
-
     const int is_inverse = false;
 
-    const size_t global_item_size = 128; // There can be at most sample_size / radix size work items. Must be a power of 2
+    const size_t global_item_size = 128; // Up to sample_size / 2 work items. Must be power of 2
     const size_t local_item_size = global_item_size;
+
+    std::cout << "Calculating " << (is_inverse ? "ifft" : "fft") << " radix-" << (sample_size / global_item_size) << "\n\n";
 
     const char* program_source_path = "fft.cl";
 
@@ -107,9 +107,7 @@ int main() {
 
     CHECKERR(clSetKernelArg(kernel, 2, sizeof(sample_size), &sample_size)); // N
 
-    CHECKERR(clSetKernelArg(kernel, 3, sizeof(radix), &radix)); // radix
-
-    CHECKERR(clSetKernelArg(kernel, 4, sizeof(is_inverse), &is_inverse)); // is_inverse
+    CHECKERR(clSetKernelArg(kernel, 3, sizeof(is_inverse), &is_inverse)); // is_inverse
 
     CHECKERR(clEnqueueNDRangeKernel(command_queue, kernel, 1, nullptr, &global_item_size, &local_item_size, 0, nullptr, nullptr));
 

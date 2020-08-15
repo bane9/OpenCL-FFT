@@ -38,39 +38,20 @@ float2 twiddle(float kn, float N, bool is_inverse) {
     return (float2) {r, i};
 }
 
-inline void dft2(local float2* local_cache, const int threadId, const int currentIteration, const int logTwo, const int N, bool is_inverse)
-{
-    const unsigned even = index_map(threadId, currentIteration, N);
-    const unsigned odd = even + (1u << currentIteration);
-    
-    const float2 evenVal = local_cache[even];
-    
-    const unsigned q = twiddle_map(threadId, currentIteration, logTwo, N);
-
-    const float2 e = cplx_mul(twiddle(q, N, is_inverse), local_cache[odd]);
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-    
-    local_cache[odd] = evenVal - e;
-    local_cache[even] += e;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-}
-
-kernel void fft(global float2* data, local float2* local_cache, const int N, const int radix, const int is_inverse) 
+kernel void fft(global float2* data, local float2* local_cache, const int N, const int is_inverse) 
 {
     const int local_size = get_local_size(0);
     
     const int global_id = get_global_id(0);
 
-    const int g_offset = N / radix / local_size;
+    const int g_offset = N / 2 / local_size;
 
     const int btid = global_id * g_offset;
     
     const int leading_zeroes = clz(N) + 1;
     const int logTwo = 32 - leading_zeroes;
     
-    for(int i = btid * radix; i < btid * radix + g_offset * radix; i++)
+    for(int i = btid * 2; i < btid * 2 + g_offset * 2; i++)
     {
         const int j = rev_bits(i) >> leading_zeroes;
         local_cache[i] = data[j];
@@ -78,20 +59,29 @@ kernel void fft(global float2* data, local float2* local_cache, const int N, con
     
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    const int half_radix = radix / 2;
-
     for(int i = 0; i < logTwo; i++)
     {
         for(int j = btid; j < btid + g_offset; j++)
         {
-            const int t = j * half_radix;
-            
-            for(int r = 0; r < half_radix; r++)
-                dft2(local_cache, t + r, i, logTwo, N, is_inverse);
+            const unsigned even = index_map(j, i, N);
+            const unsigned odd = even + (1u << i);
+    
+            const float2 evenVal = local_cache[even];
+    
+            const unsigned q = twiddle_map(j, i, logTwo, N);
+
+            const float2 e = cplx_mul(twiddle(q, N, is_inverse), local_cache[odd]);
+
+            barrier(CLK_LOCAL_MEM_FENCE);
+    
+            local_cache[odd] = evenVal - e;
+            local_cache[even] += e;
+
+            barrier(CLK_LOCAL_MEM_FENCE);
         }
     }
     
-    for(int i = btid * radix; i < btid * radix + g_offset * radix; i++)
+    for(int i = btid * 2; i < btid * 2 + g_offset * 2; i++)
     {
         data[i] = local_cache[i] / (N * is_inverse + 1 * !is_inverse);
     }
