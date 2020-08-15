@@ -47,9 +47,13 @@ inline void dft2(local float2* local_cache, const int threadId, const int curren
     const unsigned q = twiddle_map(threadId, currentIteration, logTwo, N);
 
     const float2 e = cplx_mul(twiddle(q, N, is_inverse), local_cache[odd]);
-            
-    local_cache[odd] = local_cache[even] - e;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    local_cache[odd] = evenVal - e;
     local_cache[even] += e;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
 }
 
 kernel void fft(global float2* data, local float2* local_cache, const int N, const int radix, const int is_inverse) 
@@ -83,8 +87,6 @@ kernel void fft(global float2* data, local float2* local_cache, const int N, con
             
             for(int r = 0; r < half_radix; r++)
                 dft2(local_cache, t + r, i, logTwo, N, is_inverse);
-            
-            barrier(CLK_LOCAL_MEM_FENCE);
         }
     }
     
