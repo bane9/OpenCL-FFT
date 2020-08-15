@@ -43,7 +43,8 @@ inline void dft2(local float2* local_cache, const int threadId, const int curren
     const unsigned even = index_map(threadId, currentIteration, N);
     const unsigned odd = even + (1u << currentIteration);
     
-    float2 evenVal = local_cache[even];
+    const float2 evenVal = local_cache[even];
+    
     const unsigned q = twiddle_map(threadId, currentIteration, logTwo, N);
 
     const float2 e = cplx_mul(twiddle(q, N, is_inverse), local_cache[odd]);
