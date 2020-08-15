@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <complex>
-#include <chrono>
 #include <cmath>
 
 #ifdef __APPLE__
@@ -16,12 +15,11 @@ void errCheck(cl_int err, int line);
 
 #define CHECKERR(err) errCheck(err, __LINE__)
 
-
 int main() {
-    using cplx_t = std::complex<double>;
-    const size_t sample_size = 2048;
+    using cplx_t = std::complex<float>;
+    const int sample_size = 2048;
 
-    const size_t global_item_size = 128;
+    const size_t global_item_size = 2; // There can be at most sample_size / radix size work items. Must be a power of 2
     const size_t local_item_size = global_item_size;
 
     const char* program_source_path = "fft.cl";
@@ -36,7 +34,6 @@ int main() {
 
     if (!fileSource) {
         std::cout << "Failed to load kernel\n";
-
         return 1;
     }
 
@@ -51,6 +48,11 @@ int main() {
     CHECKERR(clGetPlatformIDs(1, &platform_id, nullptr));
 
     CHECKERR(clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, nullptr));
+
+    cl_ulong size;
+    clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &size, 0);
+
+    auto s2 = sample_size * sizeof(cplx_t);
 
     cl_context context = clCreateContext(nullptr, 1, &device_id, nullptr, nullptr, &ret);
 
@@ -88,7 +90,6 @@ int main() {
 
         std::cout << "Building the program failed, build log:\n" << build_log << "\n";
 
-
         return 1;
     }
 
@@ -96,35 +97,20 @@ int main() {
 
     CHECKERR(ret);
 
-    CHECKERR(clSetKernelArg(kernel, 0, sizeof(cl_mem), &a_mem_obj)); // input data
+    CHECKERR(clSetKernelArg(kernel, 0, sizeof(cl_mem), &a_mem_obj)); // data
 
-    CHECKERR(clSetKernelArg(kernel, 1, sample_size * sizeof(cplx_t), nullptr)); // local cache
+    CHECKERR(clSetKernelArg(kernel, 1, sample_size * sizeof(cplx_t), nullptr)); // local_cache
 
-    const int N = sample_size;
+    CHECKERR(clSetKernelArg(kernel, 2, sizeof(sample_size), &sample_size)); // N
 
-    CHECKERR(clSetKernelArg(kernel, 2, (N / 2) * sizeof(cplx_t), nullptr)); // omega cache
-
-    CHECKERR(clSetKernelArg(kernel, 3, sizeof(N), &N)); // N
-
-
-    using namespace std::chrono;
-
-    auto begin = high_resolution_clock::now();
     CHECKERR(clEnqueueNDRangeKernel(command_queue, kernel, 1, nullptr, &global_item_size, &local_item_size, 0, nullptr, nullptr));
-    auto end = high_resolution_clock::now();
 
     auto outData = inData;
     CHECKERR(clEnqueueReadBuffer(command_queue, a_mem_obj, CL_TRUE, 0, sample_size * sizeof(cplx_t), outData.data(), 0, nullptr, nullptr));
 
-    std::cout << "//////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n";
-
     for (int i = 0; i < outData.size(); i++) {
         std::cout << outData[i] << "\n";
     }
-
-    std::cout << "\nExecution took " << duration_cast<microseconds>(end - begin).count() << "us\n";
-
-
 
     clFlush(command_queue);
     clFinish(command_queue);
