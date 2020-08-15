@@ -21,7 +21,7 @@ int main() {
 
     const int radix = 32;
 
-    const int is_inverse = true;
+    const int is_inverse = false;
 
     const size_t global_item_size = 128; // There can be at most sample_size / radix size work items. Must be a power of 2
     const size_t local_item_size = global_item_size;

@@ -52,7 +52,7 @@ inline void dft2(local float2* local_cache, const int threadId, const int curren
     local_cache[even] += e;
 }
 
-kernel void fft(global float2* data, local float2* local_cache, const int N, const int radix, int is_inverse) 
+kernel void fft(global float2* data, local float2* local_cache, const int N, const int radix, const int is_inverse) 
 {
     const int local_size = get_local_size(0);
     
