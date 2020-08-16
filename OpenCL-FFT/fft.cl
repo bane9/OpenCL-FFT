@@ -78,8 +78,8 @@ kernel void fft(global float2* data, local float2* local_cache, const int N, con
             local_cache[odd] = evenVal - e;
             local_cache[even] = evenVal + e;
 
-            barrier(CLK_LOCAL_MEM_FENCE);
         }
+        barrier(CLK_LOCAL_MEM_FENCE);
     }
     
     for(int i = btid * 2; i < btid * 2 + g_offset * 2; i++)
