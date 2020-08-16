@@ -24,8 +24,6 @@ int main() {
     const size_t global_item_size = 128; // Up to sample_size / 2 work items. Must be power of 2
     const size_t local_item_size = global_item_size;
 
-    std::cout << "Calculating " << (is_inverse ? "ifft" : "fft") << " radix-" << (sample_size / global_item_size) << "\n\n";
-
     const char* program_source_path = "fft.cl";
 
     const char* kernel_entry_point = "fft";
